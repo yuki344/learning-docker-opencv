@@ -1,2 +1,5 @@
 opencvapp/src/OpenCV/*
+opencvapp/src/OpenCV-contrib/*
+opencvapp/src/3rdPartyLibs/*
+
 *.DS_Store*

@@ -8,6 +8,7 @@ FROM gcc:8.4.0 as OpenCV_Build
 # These commands copy your files into the specified directory in the image
 # and set that as the working location
 COPY ./src/OpenCV/ /usr/src/OpenCV/
+COPY ./src/OpenCV-contrib/ /usr/src/OpenCV-contrib/
 WORKDIR /usr/src/OpenCV/build
 
 # This command compiles your app using GCC, adjust for your source code
@@ -15,9 +16,10 @@ WORKDIR /usr/src/OpenCV/build
 RUN apt update && apt install -y cmake
 RUN apt install -y openjdk-11-jdk
 RUN apt install -y ant
-RUN apt install libeigen3-dev
+RUN apt install -y libeigen3-dev
 ENV JAVA_HOME /usr/lib/jvm/java-11-openjdk-arm64
 RUN cmake \
+        -DOPENCV_EXTRA_MODULES_PATH=/usr/src/OpenCV-contrib/modules\
         -DCMAKE_INSTALL_PREFIX=/usr/local/opencv \
         -DBUILD_SHARED_LIBS=OFF\
         -DCMAKE_BUILD_TYPE=Release\
@@ -49,6 +51,20 @@ RUN make
 
 FROM debian:buster as app_base
 RUN apt update && apt install -y libtiff5 libpng16-16 libopenjp2-7 libopenexr23
+
+#############################################
+
+FROM ocv_build as libs_build
+ARG LIBSTOBUILD=aruco-3.1.12
+COPY --from=OpenCV_Build /usr/local/opencv/ /usr/local/opencv/
+COPY ./src/3rdPartyLibs/${LIBSTOBUILD}/ /app/${LIBSTOBUILD}/
+WORKDIR /app/${LIBSTOBUILD}/build
+
+RUN cmake -DCMAKE_INSTALL_PREFIX=/usr/local/${LIBSTOBUILD}\
+        -DOpenCV_DIR=/usr/local/opencv/\
+        -DBUILD_UTILS=ON ..\
+        && make\
+        && make install
 
 
 #############################################
